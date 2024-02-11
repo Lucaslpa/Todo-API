@@ -18,7 +18,9 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers()
 .AddNewtonsoftJson();
 
-builder.Services.AddDbContext<SqlServerContext>(x => x.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+var connectionString = builder.Configuration.GetConnectionString( "DefaultConnection" );
+
+builder.Services.AddDbContext<SqlServerContext>(x => x.UseSqlServer( connectionString ) );
 builder.Services.AddTransient<ITodoItemRepository, TodoItemRepository>();
 builder.Services.AddTransient<TodoHandler , TodoHandler>();
 builder.Services.AddTransient<CreateNewTaskCommandValidator , CreateNewTaskCommandValidator>();
@@ -44,6 +46,17 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+
+    var context = services.GetRequiredService<SqlServerContext>();
+    if (context.Database.GetPendingMigrations().Any())
+    {
+        context.Database.Migrate();
+    }
 }
 
 app.UseAuthentication();
